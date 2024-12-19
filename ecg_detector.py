@@ -29,6 +29,38 @@ def analyse_heart_rate(rpeaks, brad_threshold=60, tachy_threshold=100, log=False
     else:
         return 0
     
+def analyse_segment_pr(rpeaks, P_pos):
+    segment_pr = rpeaks - P_pos[0]
+    #Pour vérifier si le segment PR est normal, on se base sur un signal de 9,5s avec 5000 échantillons soit un signal échantilloné à environ 526Hz
+    compteur = 0
+    for i in segment_pr:
+        if i > 110:
+            compteur+=1
+    if compteur >= len(segment_pr)/2: #On vérifie le caractère prolongé de l'anomalie sur les segments PR
+        return True
+    return False
+
+def analyse_complexe_qrs(Q_pos, S_pos):
+    segment_QRS = S_pos - Q_pos
+    for i in segment_QRS:
+        if i > 63:
+            return -1
+    return 0
+
+def complexe_qrs_dianosis(complexe_qrs_analysis):
+    if complexe_qrs_analysis == -1:
+        return "Tachychardie ventriculaire"
+    if complexe_qrs_dianosis == 0 : 
+        return "⚠️ Diagnostic n'aboutissant pas"
+
+
+
+def segment_pr_diagnosis(segment_pr_analysis):
+    if segment_pr_analysis == True:
+        return "Bloc auriculo-ventriculaire I"
+    return "Rythme sinusal normal"
+    
+    
 def heart_rate_diagnosis(heart_rate_analysis):
     if heart_rate_analysis == 1:
         return "Tachycardie"
@@ -56,6 +88,7 @@ def analyse_ecg(ecg_id, log=True):
     start_time = time.time()
 
     ecg_file_path = df_meta.iloc[ecg_id].ecg_file_path
+    print("Diagnostic du chirurgien :" + str(df_meta.iloc[ecg_id].diagnosis))
     if log: 
         print(f"📖 Lecture des données à partir de : {ecg_file_path}")
     ecg_data = pd.read_csv(ecg_file_path)
@@ -101,8 +134,14 @@ def analyse_ecg(ecg_id, log=True):
         if diagnosis != 0:
             return diagnosis, heart_rate_diagnosis(diagnosis)
         
-        # COMPLETER ICI
-
+        if diagnosis == 0:
+            pr_analyse = analyse_segment_pr(rpeaks, P_pos)
+            return segment_pr_diagnosis(pr_analyse)
+        
+        if diagnosis == 1:
+            qrs_analyse = analyse_complexe_qrs(Q_pos, S_pos)
+            return complexe_qrs_dianosis(qrs_analyse)
+    
     else:
         print(f"🔴 Rythme irrégulier pour ECG #{ecg_id}.")
 
@@ -112,5 +151,5 @@ def analyse_ecg(ecg_id, log=True):
 
 
 # Appel de la fonction d'analyse
-analyse_ecg(0)
-analyse_ecg(1)
+print(analyse_ecg(0))
+print(analyse_ecg(75))
